@@ -40,7 +40,7 @@ func main() {
 }
 
 func postScaleConfigs(c *gin.Context) {
-	// logger := log.Default()
+	logger := log.Default()
 	var configs scales.ScaleConfigs
 
 	if err := c.ShouldBindJSON(&configs); err != nil {
@@ -48,6 +48,13 @@ func postScaleConfigs(c *gin.Context) {
 		return
 	}
 
+	clientset, err := scales.GetClientset()
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	scales.UpdateHpa(clientset, configs, logger)
 	c.JSON(200, configs)
 }
 

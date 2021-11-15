@@ -35,7 +35,7 @@ spec:
       automountServiceAccountToken: true
       containers:
       - name: pod-autoscaler
-        image: pliniogsnascimento/pod-autoscaler-for-tests:0.0.2-dev
+        image: pliniogsnascimento/pod-autoscaler-for-tests:0.0.4-dev
         ports:
         - containerPort: 8090
       restartPolicy: Always
