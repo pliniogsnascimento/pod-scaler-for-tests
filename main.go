@@ -18,12 +18,8 @@ import (
 	"log"
 	"net/http"
 
-	"context"
 	"github.com/gin-gonic/gin"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	"github.com/pliniogsnascimento/pod-scaler-for-tests/pkg/scales"
 )
 
 //
@@ -36,14 +32,6 @@ import (
 // _ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 // _ "k8s.io/client-go/plugin/pkg/client/auth/openstack"
 
-type ScaleConfigs map[string]ScaleConfig
-
-type ScaleConfig struct {
-	Min         int  `json:"min"`
-	Max         int  `json:"max"`
-	HpaOperator bool `json:"hpaOperator"`
-}
-
 func main() {
 	r := gin.Default()
 	r.POST("/scaleConfigs", postScaleConfigs)
@@ -53,7 +41,7 @@ func main() {
 
 func postScaleConfigs(c *gin.Context) {
 	// logger := log.Default()
-	var configs ScaleConfigs
+	var configs scales.ScaleConfigs
 
 	if err := c.ShouldBindJSON(&configs); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -64,61 +52,30 @@ func postScaleConfigs(c *gin.Context) {
 }
 
 func getScaleConfigs(c *gin.Context) {
-	var configs ScaleConfigs
+	var configs scales.ScaleConfigs
 	logger := log.Default()
 
 	if err := c.ShouldBindJSON(&configs); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
 	}
 
-	clientset, err := getClientset()
+	clientset, err := scales.GetClientset()
 
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
 	}
 
-	currentConfig := getHpaInfo(clientset, configs, logger)
+	currentConfig, err := scales.GetHpaInfo(clientset, configs, logger)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
 	if len(currentConfig) <= 0 {
 		c.AbortWithStatus(http.StatusNotFound)
 	}
 
 	c.JSON(200, currentConfig)
-}
-
-// TODO: Remove from here after resolving bugs
-
-func getClientset() (*kubernetes.Clientset, error) {
-	config, err := rest.InClusterConfig()
-
-	if err != nil {
-
-		return nil, err
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return clientset, nil
-}
-
-func getHpaInfo(clientset *kubernetes.Clientset, scaleConfigs ScaleConfigs, logger *log.Logger) (currentConfig ScaleConfigs) {
-	for name, _ := range scaleConfigs {
-		hpa, err := clientset.AutoscalingV1().HorizontalPodAutoscalers(name).Get(context.TODO(), name, metav1.GetOptions{})
-		if err != nil {
-			logger.Println(err.Error())
-			continue
-		}
-		// fmt.Fprintf(w, "%s \t%d \t%d \n", hpa.Name, *hpa.Spec.MinReplicas, hpa.Spec.MaxReplicas)
-		currentConfig[hpa.Name] = ScaleConfig{
-			Min: int(*hpa.Spec.MinReplicas),
-			Max: int(hpa.Spec.MaxReplicas),
-		}
-	}
-	return currentConfig
-}
-
-func updateHpa() {
-
 }
