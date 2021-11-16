@@ -54,7 +54,11 @@ func postScaleConfigs(c *gin.Context) {
 		return
 	}
 
-	scales.UpdateHpa(clientset, configs, logger)
+	err = scales.UpdateHpa(clientset, configs, logger)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
 	c.JSON(200, configs)
 }
 

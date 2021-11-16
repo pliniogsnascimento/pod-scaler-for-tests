@@ -49,14 +49,21 @@ func GetHpaInfo(clientset *kubernetes.Clientset, scaleConfigs ScaleConfigs, logg
 	return currentConfig, nil
 }
 
-func UpdateHpa(clientset *kubernetes.Clientset, scaleConfigs ScaleConfigs, logger *log.Logger) {
+func UpdateHpa(clientset *kubernetes.Clientset, scaleConfigs ScaleConfigs, logger *log.Logger) error {
 	for scaleName, configs := range scaleConfigs {
 		if configs.HpaOperator {
-			updateHpaOp(clientset, scaleName, &configs, logger)
+			err := updateHpaOp(clientset, scaleName, &configs, logger)
+			if err != nil {
+				return err
+			}
 		} else {
-			updateVanillaHpa(clientset, scaleName, &configs, logger)
+			err := updateVanillaHpa(clientset, scaleName, &configs, logger)
+			if err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 func updateHpaOp(clientset *kubernetes.Clientset, scaleName string, configs *ScaleConfig, logger *log.Logger) error {

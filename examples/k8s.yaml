@@ -35,7 +35,7 @@ spec:
       automountServiceAccountToken: true
       containers:
       - name: pod-autoscaler
-        image: pliniogsnascimento/pod-autoscaler-for-tests:0.0.4-dev
+        image: pliniogsnascimento/pod-autoscaler-for-tests:0.0.6-dev
         ports:
         - containerPort: 8090
       restartPolicy: Always
@@ -53,6 +53,7 @@ rules:
   - get
   - list
   - watch
+  - update
 - apiGroups:
   - autoscaling
   resources:
@@ -61,6 +62,7 @@ rules:
   - get
   - list
   - watch
+  - update
 ---
 apiVersion: v1
 kind: ServiceAccount
