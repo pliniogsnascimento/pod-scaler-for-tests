@@ -17,6 +17,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pliniogsnascimento/pod-scaler-for-tests/pkg/scales"
@@ -42,6 +43,13 @@ func main() {
 func postScaleConfigs(c *gin.Context) {
 	logger := log.Default()
 	var configs scales.ScaleConfigs
+	var sleepDuration time.Duration
+	var err error
+
+	sleepString := c.Request.Header.Get("sleep")
+	if sleepDuration, err = time.ParseDuration(sleepString); err != nil {
+		sleepDuration = time.Duration(0)
+	}
 
 	if err := c.ShouldBindJSON(&configs); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -54,7 +62,7 @@ func postScaleConfigs(c *gin.Context) {
 		return
 	}
 
-	err = scales.UpdateHpa(clientset, configs, logger)
+	err = scales.UpdateHpa(clientset, configs, logger, &sleepDuration)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return

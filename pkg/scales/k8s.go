@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"strconv"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,13 +50,14 @@ func GetHpaInfo(clientset *kubernetes.Clientset, scaleConfigs ScaleConfigs, logg
 	return currentConfig, nil
 }
 
-func UpdateHpa(clientset *kubernetes.Clientset, scaleConfigs ScaleConfigs, logger *log.Logger) error {
+func UpdateHpa(clientset *kubernetes.Clientset, scaleConfigs ScaleConfigs, logger *log.Logger, sleep *time.Duration) error {
 	for scaleName, configs := range scaleConfigs {
 		if configs.HpaOperator {
 			err := updateHpaOp(clientset, scaleName, &configs, logger)
 			if err != nil {
 				return err
 			}
+			time.Sleep(*sleep)
 		} else {
 			err := updateVanillaHpa(clientset, scaleName, &configs, logger)
 			if err != nil {
