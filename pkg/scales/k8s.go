@@ -57,13 +57,13 @@ func UpdateHpa(clientset *kubernetes.Clientset, scaleConfigs ScaleConfigs, logge
 			if err != nil {
 				return err
 			}
-			time.Sleep(*sleep)
 		} else {
 			err := updateVanillaHpa(clientset, scaleName, &configs, logger)
 			if err != nil {
 				return err
 			}
 		}
+		time.Sleep(*sleep)
 	}
 	return nil
 }
