@@ -33,12 +33,12 @@ func GetHpaInfo(clientset *kubernetes.Clientset, scaleConfigs ScaleConfigs, logg
 	for name := range scaleConfigs {
 		hpa, err := clientset.AutoscalingV1().HorizontalPodAutoscalers(name).Get(context.TODO(), name, metav1.GetOptions{})
 		if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
-			logger.Println(err.Error())
+			logger.Errorln(err.Error())
 			return nil, err
 		}
 
 		if errors.IsNotFound(err) {
-			logger.Printf("HPA not found in namespace %s\n", name)
+			logger.Warnf("HPA not found in namespace %s\n", name)
 			continue
 		}
 
@@ -76,7 +76,7 @@ func updateHpaOp(clientset *kubernetes.Clientset, scaleName string, configs *Sca
 	}
 
 	if errors.IsNotFound(err) {
-		logger.Printf("Deployment not found in namespace %s\n", scaleName)
+		logger.Warnf("Deployment not found in namespace %s\n", scaleName)
 		return nil
 	}
 
@@ -88,7 +88,7 @@ func updateHpaOp(clientset *kubernetes.Clientset, scaleName string, configs *Sca
 		logger.Printf("Success updating Deployment %s!!", deploy.Name)
 	}
 	if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
-		logger.Println(err.Error())
+		logger.Errorln(err.Error())
 		return err
 	}
 	return nil
@@ -97,7 +97,7 @@ func updateHpaOp(clientset *kubernetes.Clientset, scaleName string, configs *Sca
 func updateVanillaHpa(clientset *kubernetes.Clientset, scaleName string, configs *ScaleConfig, logger *logrus.Logger) error {
 	hpa, err := clientset.AutoscalingV1().HorizontalPodAutoscalers(scaleName).Get(context.TODO(), scaleName, metav1.GetOptions{})
 	if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
-		logger.Println(err.Error())
+		logger.Errorln(err.Error())
 		return err
 	}
 
@@ -110,7 +110,7 @@ func updateVanillaHpa(clientset *kubernetes.Clientset, scaleName string, configs
 		logger.Printf("Success updating HPA %s!!", hpa.Name)
 	}
 	if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
-		logger.Println(err.Error())
+		logger.Errorln(err.Error())
 		return err
 	}
 	return nil
