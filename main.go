@@ -15,13 +15,23 @@ limitations under the License.
 package main
 
 import (
-	"log"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pliniogsnascimento/pod-scaler-for-tests/pkg/scales"
 )
+
+var logger *logrus.Logger
+
+func init() {
+	logger = logrus.New()
+	logger.SetFormatter(&logrus.TextFormatter{
+		DisableColors: true,
+		FullTimestamp: true,
+	})
+}
 
 //
 // Uncomment to load all auth plugins
@@ -41,7 +51,7 @@ func main() {
 }
 
 func postScaleConfigs(c *gin.Context) {
-	logger := log.Default()
+
 	var configs scales.ScaleConfigs
 	var sleepDuration time.Duration
 	var err error
@@ -62,7 +72,7 @@ func postScaleConfigs(c *gin.Context) {
 		return
 	}
 
-	err = scales.UpdateHpa(clientset, configs, logger, &sleepDuration)
+	go scales.UpdateHpa(clientset, configs, logger, &sleepDuration)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
@@ -72,7 +82,6 @@ func postScaleConfigs(c *gin.Context) {
 
 func getScaleConfigs(c *gin.Context) {
 	var configs scales.ScaleConfigs
-	logger := log.Default()
 
 	if err := c.ShouldBindJSON(&configs); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": err.Error()})

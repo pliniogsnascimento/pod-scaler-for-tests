@@ -2,7 +2,7 @@ package scales
 
 import (
 	"context"
-	"log"
+	"github.com/sirupsen/logrus"
 	"strconv"
 	"time"
 
@@ -28,9 +28,9 @@ func GetClientset() (*kubernetes.Clientset, error) {
 	return clientset, nil
 }
 
-func GetHpaInfo(clientset *kubernetes.Clientset, scaleConfigs ScaleConfigs, logger *log.Logger) (ScaleConfigs, error) {
+func GetHpaInfo(clientset *kubernetes.Clientset, scaleConfigs ScaleConfigs, logger *logrus.Logger) (ScaleConfigs, error) {
 	currentConfig := make(ScaleConfigs)
-	for name, _ := range scaleConfigs {
+	for name := range scaleConfigs {
 		hpa, err := clientset.AutoscalingV1().HorizontalPodAutoscalers(name).Get(context.TODO(), name, metav1.GetOptions{})
 		if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
 			logger.Println(err.Error())
@@ -50,7 +50,7 @@ func GetHpaInfo(clientset *kubernetes.Clientset, scaleConfigs ScaleConfigs, logg
 	return currentConfig, nil
 }
 
-func UpdateHpa(clientset *kubernetes.Clientset, scaleConfigs ScaleConfigs, logger *log.Logger, sleep *time.Duration) error {
+func UpdateHpa(clientset *kubernetes.Clientset, scaleConfigs ScaleConfigs, logger *logrus.Logger, sleep *time.Duration) error {
 	for scaleName, configs := range scaleConfigs {
 		if configs.HpaOperator {
 			err := updateHpaOp(clientset, scaleName, &configs, logger)
@@ -68,10 +68,10 @@ func UpdateHpa(clientset *kubernetes.Clientset, scaleConfigs ScaleConfigs, logge
 	return nil
 }
 
-func updateHpaOp(clientset *kubernetes.Clientset, scaleName string, configs *ScaleConfig, logger *log.Logger) error {
+func updateHpaOp(clientset *kubernetes.Clientset, scaleName string, configs *ScaleConfig, logger *logrus.Logger) error {
 	deploy, err := clientset.AppsV1().Deployments(scaleName).Get(context.TODO(), scaleName, metav1.GetOptions{})
 	if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
-		logger.Println(err.Error())
+		logger.Errorln(err.Error())
 		return err
 	}
 
@@ -94,7 +94,7 @@ func updateHpaOp(clientset *kubernetes.Clientset, scaleName string, configs *Sca
 	return nil
 }
 
-func updateVanillaHpa(clientset *kubernetes.Clientset, scaleName string, configs *ScaleConfig, logger *log.Logger) error {
+func updateVanillaHpa(clientset *kubernetes.Clientset, scaleName string, configs *ScaleConfig, logger *logrus.Logger) error {
 	hpa, err := clientset.AutoscalingV1().HorizontalPodAutoscalers(scaleName).Get(context.TODO(), scaleName, metav1.GetOptions{})
 	if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
 		logger.Println(err.Error())
