@@ -65,6 +65,7 @@ func UpdateHpa(clientset *kubernetes.Clientset, scaleConfigs ScaleConfigs, logge
 		}
 		time.Sleep(*sleep)
 	}
+	logger.Infoln("Done processing update request!")
 	return nil
 }
 
@@ -85,7 +86,7 @@ func updateHpaOp(clientset *kubernetes.Clientset, scaleName string, configs *Sca
 
 	deploy, err = clientset.AppsV1().Deployments(scaleName).Update(context.TODO(), deploy, metav1.UpdateOptions{})
 	if err == nil {
-		logger.Printf("Success updating Deployment %s!!", deploy.Name)
+		logger.Printf("Success updating Deployment %s!", deploy.Name)
 	}
 	if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
 		logger.Errorln(err.Error())
@@ -107,7 +108,7 @@ func updateVanillaHpa(clientset *kubernetes.Clientset, scaleName string, configs
 
 	_, err = clientset.AutoscalingV1().HorizontalPodAutoscalers(scaleName).Update(context.TODO(), hpa, metav1.UpdateOptions{})
 	if err == nil {
-		logger.Printf("Success updating HPA %s!!", hpa.Name)
+		logger.Printf("Success updating HPA %s!", hpa.Name)
 	}
 	if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
 		logger.Errorln(err.Error())
