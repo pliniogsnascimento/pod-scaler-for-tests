@@ -55,29 +55,26 @@ func GetHpaInfo(clientset kubernetes.Interface, scaleConfigs ScaleConfigs, logge
 }
 
 func UpdateHpa(clientset kubernetes.Interface, scaleConfigs ScaleConfigs, logger *logrus.Logger, sleep *time.Duration) error {
-	// ch := make(chan ScaleConfig, 10)
-	// configsUpdated := ScaleConfigs{}
+	// Checks if it is Hpa Operator
+	for scaleName, scaleConfig := range scaleConfigs {
+		err := checkDeployHpaOp(clientset, scaleName, &scaleConfig, logger)
+		if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
+			logger.Errorln(err.Error())
+			return err
+		}
 
-	// for scaleName, scaleConfig := range scaleConfigs {
-	// 	go checkDeployHpaOp(clientset, scaleName, scaleConfig, logger, ch)
-	// }
-
-	// for i := 0; i >= len(scaleConfigs); i++ {
-	// 	configUpdated := <-ch
-	// 	configsUpdated[configUpdated.Name] = configUpdated
-	// }
+		if errors.IsNotFound(err) {
+			logger.Warnf("Deployment not found in namespace %s\n", scaleName)
+			continue
+		}
+		scaleConfigs[scaleName] = scaleConfig
+	}
 
 	for scaleName, configs := range scaleConfigs {
 		if configs.HpaOperator {
 			err := updateHpaOp(clientset, scaleName, &configs, logger)
 			if err != nil {
-				switch err.Error() {
-				case "Not HPA Operator!":
-					logger.Errorf("%s %s", scaleName, err)
-					continue
-				default:
-					return err
-				}
+				return err
 			}
 		} else {
 			err := updateVanillaHpa(clientset, scaleName, &configs, logger)
@@ -91,32 +88,30 @@ func UpdateHpa(clientset kubernetes.Interface, scaleConfigs ScaleConfigs, logger
 	return nil
 }
 
-// func checkDeployHpaOp(client kubernetes.Interface, scaleName string, scaleConfig ScaleConfig, logger *logrus.Logger, ch chan ScaleConfig) {
-// 	deploy, err := client.AppsV1().Deployments(scaleName).Get(context.TODO(), scaleName, metav1.GetOptions{})
+func checkDeployHpaOp(client kubernetes.Interface, scaleName string, scaleConfig *ScaleConfig, logger *logrus.Logger) error {
+	deploy, err := client.AppsV1().Deployments(scaleName).Get(context.TODO(), scaleName, metav1.GetOptions{})
 
-// 	if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
-// 		logger.Errorln(err.Error())
-// 		ch <- nil
-// 		// return err
-// 	}
+	if errors.IsForbidden(err) || errors.IsUnauthorized(err) || errors.IsNotFound(err) {
+		return err
+	}
 
-// 	if errors.IsNotFound(err) {
-// 		logger.Warnf("Deployment not found in namespace %s\n", scaleName)
-// 		// return nil
-// 	}
-// 	scaleConfig.Name = scaleName
+	if errors.IsNotFound(err) {
+		logger.Warnf("Deployment not found in namespace %s\n", scaleName)
+		return fmt.Errorf("Deploy not found")
+	}
+	_, maxOk := deploy.Annotations["hpa.autoscaling.banzaicloud.io/maxReplicas"]
+	_, minOk := deploy.Annotations["hpa.autoscaling.banzaicloud.io/minReplicas"]
 
-// 	_, maxOk := deploy.Annotations["hpa.autoscaling.banzaicloud.io/maxReplicas"]
-// 	_, minOk := deploy.Annotations["hpa.autoscaling.banzaicloud.io/minReplicas"]
+	if maxOk && minOk {
+		logger.Debugf("%s uses Hpa Operator.\n", scaleName)
+		scaleConfig.HpaOperator = true
+	} else {
+		logger.Debugf("%s does not use Hpa Operator.\n", scaleName)
+		scaleConfig.HpaOperator = false
+	}
 
-// 	if maxOk && minOk {
-// 		scaleConfig.HpaOperator = true
-// 		ch <- scaleConfig
-// 	} else {
-// 		scaleConfig.HpaOperator = true
-// 		ch <- scaleConfig
-// 	}
-// }
+	return nil
+}
 
 func updateHpaOp(clientset kubernetes.Interface, scaleName string, configs *ScaleConfig, logger *logrus.Logger) error {
 	deploy, err := clientset.AppsV1().Deployments(scaleName).Get(context.TODO(), scaleName, metav1.GetOptions{})
@@ -130,17 +125,8 @@ func updateHpaOp(clientset kubernetes.Interface, scaleName string, configs *Scal
 		return nil
 	}
 
-	// checks if HPA Operator Annotation exists. TODO: Create specific errors.
-	if _, ok := deploy.Annotations["hpa.autoscaling.banzaicloud.io/maxReplicas"]; ok {
-		deploy.Annotations["hpa.autoscaling.banzaicloud.io/maxReplicas"] = strconv.Itoa(configs.Max)
-	} else {
-		return fmt.Errorf("Not HPA Operator!")
-	}
-	if _, ok := deploy.Annotations["hpa.autoscaling.banzaicloud.io/minReplicas"]; ok {
-		deploy.Annotations["hpa.autoscaling.banzaicloud.io/minReplicas"] = strconv.Itoa(configs.Min)
-	} else {
-		return fmt.Errorf("Not HPA Operator!")
-	}
+	deploy.Annotations["hpa.autoscaling.banzaicloud.io/maxReplicas"] = strconv.Itoa(configs.Max)
+	deploy.Annotations["hpa.autoscaling.banzaicloud.io/minReplicas"] = strconv.Itoa(configs.Min)
 
 	deploy, err = clientset.AppsV1().Deployments(scaleName).Update(context.TODO(), deploy, metav1.UpdateOptions{})
 	if err == nil {
@@ -174,3 +160,16 @@ func updateVanillaHpa(clientset kubernetes.Interface, scaleName string, configs 
 	}
 	return nil
 }
+
+// Consider using this function
+// func checkKubernetesErrors(err error, logger *logrus.Logger, deployName string) error {
+// 	if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
+// 		logger.Errorln(err.Error())
+// 		return err
+// 	}
+
+// 	if errors.IsNotFound(err) {
+// 		logger.Warnf("Deployment not found in namespace %s\n", deployName)
+// 	}
+// 	return nil
+// }
