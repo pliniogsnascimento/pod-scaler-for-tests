@@ -51,7 +51,6 @@ func main() {
 }
 
 func postScaleConfigs(c *gin.Context) {
-
 	var configs scales.ScaleConfigs
 	var sleepDuration time.Duration
 	var err error
