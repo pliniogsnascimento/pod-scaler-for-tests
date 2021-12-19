@@ -76,7 +76,7 @@ func postScaleConfigs(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-	c.JSON(200, configs)
+	c.JSON(200, map[string]string{"message": "Your request is being processed"})
 }
 
 func getScaleConfigs(c *gin.Context) {
