@@ -71,7 +71,7 @@ func postScaleConfigs(c *gin.Context) {
 		return
 	}
 
-	go scales.UpdateHpa(clientset, configs, logger, &sleepDuration)
+	go scales.UpdateHpaWithConcurrency(clientset, configs, logger, &sleepDuration)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
