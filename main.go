@@ -51,7 +51,6 @@ func main() {
 }
 
 func postScaleConfigs(c *gin.Context) {
-
 	var configs scales.ScaleConfigs
 	var sleepDuration time.Duration
 	var err error
@@ -72,12 +71,12 @@ func postScaleConfigs(c *gin.Context) {
 		return
 	}
 
-	go scales.UpdateHpa(clientset, configs, logger, &sleepDuration)
+	go scales.UpdateHpaWithConcurrency(clientset, configs, logger, &sleepDuration)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-	c.JSON(200, configs)
+	c.JSON(200, map[string]string{"message": "Your request is being processed"})
 }
 
 func getScaleConfigs(c *gin.Context) {
