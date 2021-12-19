@@ -205,6 +205,11 @@ func updateVanillaHpa(clientset kubernetes.Interface, scaleName string, configs 
 		return err
 	}
 
+	if errors.IsNotFound(err) {
+		logger.Warnf("HPA not found in namespace %s\n", scaleName)
+		return nil
+	}
+
 	minReplicas := int32(configs.Min)
 	hpa.Spec.MinReplicas = &minReplicas
 	hpa.Spec.MaxReplicas = int32(configs.Max)
