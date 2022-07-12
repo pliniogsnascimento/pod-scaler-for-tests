@@ -8,3 +8,8 @@ type ScaleConfig struct {
 	Max         int    `json:"max"`
 	HpaOperator bool   `json:"hpaOperator,omitempty"`
 }
+
+type Scaler interface {
+	Scale() error
+	ScaleWithConcurrency() error
+}
