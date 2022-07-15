@@ -7,8 +7,13 @@ import (
 	v1 "k8s.io/api/apps/v1"
 )
 
+//go:generate mockgen --destination=./scaler_mock.go -source=./scaler.go -package=scales -self_package=github.com/pliniogsnascimento/pod-scaler-for-tests/pkg/scales
 type scaler interface {
 	Scale(config ScaleConfig) error
+}
+
+type scaleTypeHelperInterface interface {
+	IdentifyHpaType(scaleConfig *ScaleConfig) error
 }
 
 type ScaleConfigs map[string]ScaleConfig
@@ -27,7 +32,7 @@ type scaleTypeHelper struct {
 	k8sHelper k8sHelperInterface
 }
 
-func newScaleTypeHelper(k8sHelper *k8sHelper, logger *logrus.Logger, timeout time.Duration) *scaleTypeHelper {
+func newScaleTypeHelper(k8sHelper k8sHelperInterface, logger *logrus.Logger, timeout time.Duration) *scaleTypeHelper {
 	return &scaleTypeHelper{
 		logger:    logger,
 		timeout:   timeout,

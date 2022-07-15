@@ -13,7 +13,7 @@ type scalerFactoryInterface interface {
 
 type scalerFactory struct{}
 
-func (s *scalerFactory) getScaler(scalerType string, k8sHelper *k8sHelper, logger *logrus.Logger) (scaler, error) {
+func (s *scalerFactory) getScaler(scalerType string, k8sHelper k8sHelperInterface, logger *logrus.Logger) (scaler, error) {
 	switch scalerType {
 	case "VanillaHpa":
 		return newVanillaHpa(k8sHelper, logger), nil

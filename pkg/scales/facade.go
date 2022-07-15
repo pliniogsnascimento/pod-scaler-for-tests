@@ -13,8 +13,8 @@ import (
 )
 
 type ScalesFacade struct {
-	scaleHelper   *scaleTypeHelper
-	k8sHelper     *k8sHelper
+	scaleHelper   scaleTypeHelperInterface
+	k8sHelper     k8sHelperInterface
 	scalerFactory *scalerFactory
 	logger        *logrus.Logger
 }

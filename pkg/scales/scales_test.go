@@ -17,13 +17,9 @@ import (
 )
 
 var (
-	fakeLogger    logrus.Logger
-	deployMocks   map[string]v1.Deployment
-	client        = fake.NewSimpleClientset()
-	fakeK8sHelper = &k8sHelper{
-		clientset: client,
-		ctx:       context.TODO(),
-	}
+	fakeLogger  logrus.Logger
+	deployMocks map[string]v1.Deployment
+	client      = fake.NewSimpleClientset()
 
 	fakeDeploymentModel = v1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -134,9 +130,14 @@ func TestUpdateHpaOperatorSuccess(t *testing.T) {
 }
 
 func TestUpdateMultipleHpaWithConcurrencySuccess(t *testing.T) {
+	k8sHelper := &k8sHelper{
+		clientset: client,
+		ctx:       context.TODO(),
+	}
+
 	facade := &ScalesFacade{
-		k8sHelper:     fakeK8sHelper,
-		scaleHelper:   newScaleTypeHelper(fakeK8sHelper, &fakeLogger, 500),
+		k8sHelper:     k8sHelper,
+		scaleHelper:   newScaleTypeHelper(k8sHelper, &fakeLogger, 500),
 		scalerFactory: &scalerFactory{},
 		logger:        &fakeLogger,
 	}
@@ -202,55 +203,6 @@ func TestUpdateMultipleHpaWithConcurrencySuccess(t *testing.T) {
 	facade.UpdateHpaWithConcurrency(client, scaleConfigs, &fakeLogger, &sleep)
 
 	checkIfUpdated(scaleConfigs, client, t)
-}
-
-func TestVanillaScaleSuccess(t *testing.T) {
-	scaleConfigs := ScaleConfigs{
-		deployMocks["HpaOpDeploy0"].Name: {
-			Name: "HpaOpDeploy0",
-			Min:  30,
-			Max:  50,
-		},
-		deployMocks["NormalDeploy"].Name: {
-			Name: "NormalDeploy",
-			Min:  30,
-			Max:  50,
-		},
-	}
-	scaler := newVanillaHpa(fakeK8sHelper, &fakeLogger)
-
-	for _, config := range scaleConfigs {
-		err := scaler.Scale(config)
-
-		if err != nil {
-			t.Errorf(err.Error())
-			t.FailNow()
-		}
-	}
-
-	checkIfUpdated(scaleConfigs, client, t)
-}
-
-func TestVanillaScaleError(t *testing.T) {
-	scaleConfigs := ScaleConfigs{
-		deployMocks["HpaOpDeploy0"].Name: {
-			Min: 30,
-			Max: 50,
-		},
-		deployMocks["NormalDeploy"].Name: {
-			Min: 30,
-			Max: 50,
-		},
-	}
-	scaler := newVanillaHpa(fakeK8sHelper, &fakeLogger)
-	for _, config := range scaleConfigs {
-		err := scaler.Scale(config)
-		if err == nil {
-			t.FailNow()
-		}
-
-		t.Log(err.Error())
-	}
 }
 
 func checkIfUpdated(scaleConfigs ScaleConfigs, client kubernetes.Interface, t *testing.T) {

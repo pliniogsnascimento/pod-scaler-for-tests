@@ -14,7 +14,7 @@ type hpaOperator struct {
 	k8sHelper    k8sHelperInterface
 }
 
-func newHpaOperator(k8sHelper *k8sHelper, logger *logrus.Logger) *hpaOperator {
+func newHpaOperator(k8sHelper k8sHelperInterface, logger *logrus.Logger) *hpaOperator {
 	return &hpaOperator{
 		logger:    logger,
 		k8sHelper: k8sHelper,

@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+//go:generate mockgen --destination=./k8shelper_mock.go -source=./k8sHelper.go -package=scales -self_package=github.com/pliniogsnascimento/pod-scaler-for-tests/pkg/scales
 type k8sHelperInterface interface {
 	getDeploymentWithTimeout(deployName string, timeout time.Duration) (*v1.Deployment, error)
 	getHpaWithTimeout(name string, timeout time.Duration) (*autoscalingv1.HorizontalPodAutoscaler, error)
@@ -41,7 +42,7 @@ func newK8sHelper() *k8sHelper {
 }
 
 func (k *k8sHelper) getDeploymentWithTimeout(deployName string, timeout time.Duration) (*v1.Deployment, error) {
-	ctx, cancel := context.WithTimeout(k.ctx, timeout*time.Millisecond)
+	ctx, cancel := context.WithTimeout(k.ctx, timeout)
 	defer cancel()
 	deploy, err := k.clientset.AppsV1().Deployments(deployName).Get(ctx, deployName, metav1.GetOptions{})
 

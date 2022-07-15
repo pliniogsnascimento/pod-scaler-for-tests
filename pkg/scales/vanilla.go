@@ -1,6 +1,8 @@
 package scales
 
 import (
+	"time"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -10,7 +12,7 @@ type vanillaHpa struct {
 	k8sHelper k8sHelperInterface
 }
 
-func newVanillaHpa(k8sHelper *k8sHelper, logger *logrus.Logger) *vanillaHpa {
+func newVanillaHpa(k8sHelper k8sHelperInterface, logger *logrus.Logger) *vanillaHpa {
 	return &vanillaHpa{
 		logger:    logger,
 		k8sHelper: k8sHelper,
@@ -19,7 +21,7 @@ func newVanillaHpa(k8sHelper *k8sHelper, logger *logrus.Logger) *vanillaHpa {
 
 func (hpa *vanillaHpa) Scale(config ScaleConfig) error {
 	helper := hpa.k8sHelper
-	hpaConfig, err := helper.getHpaWithTimeout(config.Name, 500)
+	hpaConfig, err := helper.getHpaWithTimeout(config.Name, 500*time.Millisecond)
 
 	if err != nil {
 		return err
