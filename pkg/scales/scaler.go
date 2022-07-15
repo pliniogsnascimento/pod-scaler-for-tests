@@ -31,6 +31,7 @@ type ScaleTypeHelper struct {
 	logger    *logrus.Logger
 	ctx       context.Context
 	timeout   time.Duration
+	k8sHelper k8sHelperInterface
 }
 
 func NewScaleChecker(scaleConfigs *ScaleConfigs, clientset kubernetes.Interface, logger *logrus.Logger, timeout time.Duration) *ScaleTypeHelper {
@@ -40,23 +41,14 @@ func NewScaleChecker(scaleConfigs *ScaleConfigs, clientset kubernetes.Interface,
 		logger:       logger,
 		ctx:          context.Background(),
 		timeout:      timeout * time.Millisecond,
+		helper:       newk8sHelper(clientset)
 	}
 }
 
 func (s ScaleTypeHelper) ModifyHpaOpCheck() error {
+	helper := s.k8sHelper
 	for _, scaleConfig := range s.ScaleConfigs {
-		ctx, cancel := context.WithTimeout(s.ctx, s.timeout)
-		deploy, err := s.clientset.AppsV1().Deployments(scaleConfig.Name).Get(ctx, scaleConfig.Name, metav1.GetOptions{})
-		cancel()
-
-		if errors.IsForbidden(err) || errors.IsUnauthorized(err) || errors.IsNotFound(err) {
-			return err
-		}
-
-		if errors.IsNotFound(err) {
-			s.logger.Warnf("Deployment not found in namespace %s\n", scaleConfig.Name)
-			return fmt.Errorf("Deploy not found")
-		}
+		deploy, err := helper.getDeploymentWithTimeout(scaleConfig.Name, 500)
 		s.checkIfHpaOp(deploy, scaleConfig)
 	}
 
