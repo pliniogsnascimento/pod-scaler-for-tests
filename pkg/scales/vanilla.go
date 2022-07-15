@@ -1,8 +1,6 @@
 package scales
 
 import (
-	"time"
-
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 )
@@ -11,15 +9,13 @@ import (
 type VanillaHpa struct {
 	clientset kubernetes.Interface
 	logger    *logrus.Logger
-	sleep     *time.Duration
 	k8sHelper k8sHelperInterface
 }
 
-func NewVanillaHpa(clientset kubernetes.Interface, logger *logrus.Logger, sleep *time.Duration) *VanillaHpa {
+func NewVanillaHpa(clientset kubernetes.Interface, logger *logrus.Logger) *VanillaHpa {
 	return &VanillaHpa{
 		clientset: clientset,
 		logger:    logger,
-		sleep:     sleep,
 		k8sHelper: newk8sHelper(clientset),
 	}
 }

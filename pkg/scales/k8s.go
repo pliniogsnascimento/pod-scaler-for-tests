@@ -59,21 +59,16 @@ func UpdateHpaWithConcurrency(clientset kubernetes.Interface, scaleConfigs Scale
 
 	// Checks if it is Hpa Operator
 	go func() {
+		scaleChecker := NewScaleChecker(clientset, logger, 500)
 		for scaleName, scaleConfig := range scaleConfigs {
-			err := checkDeployHpaOp(clientset, scaleName, &scaleConfig, logger)
+			scaleConfig.Name = scaleName
+			err := scaleChecker.IdentifyHpaType(&scaleConfig)
 
-			if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
-				logger.Errorln(err.Error())
-				chQuit <- err
-				return
-			}
-
-			if errors.IsNotFound(err) {
-				logger.Warnf("Deployment not found in namespace %s\n", scaleName)
+			if err != nil {
+				logger.Warnf(err.Error())
 				continue
 			}
 
-			scaleConfig.Name = scaleName
 			scaleCh <- scaleConfig
 			logger.Debugf("%s config sent.\n", scaleConfig.Name)
 		}
@@ -84,19 +79,14 @@ func UpdateHpaWithConcurrency(clientset kubernetes.Interface, scaleConfigs Scale
 		select {
 		case configs := <-scaleCh:
 			logger.Debugf("%s config received.\n", configs.Name)
-			if configs.HpaOperator {
-				err := updateHpaOp(clientset, configs.Name, &configs, logger)
-				if err != nil {
-					logger.Errorln(err)
-					return
-				}
-			} else {
-				err := updateVanillaHpa(clientset, configs.Name, &configs, logger)
-				if err != nil {
-					logger.Errorln(err)
-					return
-				}
+			scaler, err := getScaler(configs.Type, clientset, logger)
+
+			if err != nil {
+				logger.Errorln(err)
+				return
 			}
+
+			scaler.Scale(configs)
 			time.Sleep(*sleep)
 		case err := <-chQuit:
 			close(scaleCh)

@@ -206,9 +206,7 @@ func TestVanillaScaleSuccess(t *testing.T) {
 			Max:  50,
 		},
 	}
-	sleep := time.Duration(time.Second * 1)
-
-	scaler := NewVanillaHpa(client, &fakeLogger, &sleep)
+	scaler := NewVanillaHpa(client, &fakeLogger)
 
 	for _, config := range scaleConfigs {
 		err := scaler.Scale(config)
@@ -233,9 +231,7 @@ func TestVanillaScaleError(t *testing.T) {
 			Max: 50,
 		},
 	}
-	sleep := time.Duration(time.Second * 1)
-
-	scaler := NewVanillaHpa(client, &fakeLogger, &sleep)
+	scaler := NewVanillaHpa(client, &fakeLogger)
 	for _, config := range scaleConfigs {
 		err := scaler.Scale(config)
 		if err == nil {

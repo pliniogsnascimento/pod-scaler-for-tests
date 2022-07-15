@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -18,14 +17,12 @@ type HpaOperator struct {
 	clientset    kubernetes.Interface
 	scaleConfigs ScaleConfigs
 	logger       *logrus.Logger
-	sleep        *time.Duration
 }
 
-func NewHpaOperator(clientset kubernetes.Interface, logger *logrus.Logger, sleep *time.Duration) *HpaOperator {
+func NewHpaOperator(clientset kubernetes.Interface, logger *logrus.Logger) *HpaOperator {
 	return &HpaOperator{
 		clientset: clientset,
 		logger:    logger,
-		sleep:     sleep,
 	}
 }
 
