@@ -1,59 +1,50 @@
 package scales
 
 import (
-	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 // TODO: Refactor to implement new contract
 // Implements Scaler Interface
-type HpaOperator struct {
-	clientset    kubernetes.Interface
+type hpaOperator struct {
 	scaleConfigs ScaleConfigs
 	logger       *logrus.Logger
+	k8sHelper    k8sHelperInterface
 }
 
-func NewHpaOperator(clientset kubernetes.Interface, logger *logrus.Logger) *HpaOperator {
-	return &HpaOperator{
-		clientset: clientset,
+func newHpaOperator(k8sHelper *k8sHelper, logger *logrus.Logger) *hpaOperator {
+	return &hpaOperator{
 		logger:    logger,
+		k8sHelper: k8sHelper,
 	}
 }
 
-func (op HpaOperator) Scale(config ScaleConfig) error {
-	for _, config := range op.scaleConfigs {
-		deploy, err := op.clientset.AppsV1().Deployments(config.Name).Get(context.TODO(), config.Name, metav1.GetOptions{})
-		if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
-			op.logger.Errorln(err.Error())
-			return err
-		}
+func (op hpaOperator) Scale(config ScaleConfig) error {
+	// for _, config := range op.scaleConfigs {
+	// 	deploy, err := op.clientset.AppsV1().Deployments(config.Name).Get(context.TODO(), config.Name, metav1.GetOptions{})
+	// 	if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
+	// 		op.logger.Errorln(err.Error())
+	// 		return err
+	// 	}
 
-		if errors.IsNotFound(err) {
-			op.logger.Warnf("Deployment not found in namespace %s\n", config.Name)
-			return nil
-		}
+	// 	if errors.IsNotFound(err) {
+	// 		op.logger.Warnf("Deployment not found in namespace %s\n", config.Name)
+	// 		return nil
+	// 	}
 
-		deploy.Annotations["hpa.autoscaling.banzaicloud.io/maxReplicas"] = strconv.Itoa(config.Max)
-		deploy.Annotations["hpa.autoscaling.banzaicloud.io/minReplicas"] = strconv.Itoa(config.Min)
+	// 	deploy.Annotations["hpa.autoscaling.banzaicloud.io/maxReplicas"] = strconv.Itoa(config.Max)
+	// 	deploy.Annotations["hpa.autoscaling.banzaicloud.io/minReplicas"] = strconv.Itoa(config.Min)
 
-		deploy, err = op.clientset.AppsV1().Deployments(config.Name).Update(context.TODO(), deploy, metav1.UpdateOptions{})
-		if err == nil {
-			op.logger.Printf("Success updating Deployment %s!", deploy.Name)
-		}
-		if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
-			op.logger.Errorln(err.Error())
-			return err
-		}
-	}
-	return nil
-}
-
-func (op HpaOperator) ScaleWithConcurrency() error {
-	return fmt.Errorf("Not implemented.")
+	// 	deploy, err = op.clientset.AppsV1().Deployments(config.Name).Update(context.TODO(), deploy, metav1.UpdateOptions{})
+	// 	if err == nil {
+	// 		op.logger.Printf("Success updating Deployment %s!", deploy.Name)
+	// 	}
+	// 	if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
+	// 		op.logger.Errorln(err.Error())
+	// 		return err
+	// 	}
+	// }
+	return fmt.Errorf("Not Implemented.")
 }

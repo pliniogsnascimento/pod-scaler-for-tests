@@ -5,10 +5,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
-type Scaler interface {
+type scaler interface {
 	Scale(config ScaleConfig) error
 }
 
@@ -22,23 +21,21 @@ type ScaleConfig struct {
 	Type        string `json:"type,omitempty"`
 }
 
-type ScaleTypeHelper struct {
-	clientset kubernetes.Interface
+type scaleTypeHelper struct {
 	logger    *logrus.Logger
 	timeout   time.Duration
 	k8sHelper k8sHelperInterface
 }
 
-func NewScaleChecker(clientset kubernetes.Interface, logger *logrus.Logger, timeout time.Duration) *ScaleTypeHelper {
-	return &ScaleTypeHelper{
-		clientset: clientset,
+func newScaleTypeHelper(k8sHelper *k8sHelper, logger *logrus.Logger, timeout time.Duration) *scaleTypeHelper {
+	return &scaleTypeHelper{
 		logger:    logger,
 		timeout:   timeout,
-		k8sHelper: newk8sHelper(clientset),
+		k8sHelper: k8sHelper,
 	}
 }
 
-func (s ScaleTypeHelper) IdentifyHpaType(scaleConfig *ScaleConfig) error {
+func (s scaleTypeHelper) IdentifyHpaType(scaleConfig *ScaleConfig) error {
 	helper := s.k8sHelper
 	deploy, err := helper.getDeploymentWithTimeout(scaleConfig.Name, s.timeout)
 
@@ -50,7 +47,7 @@ func (s ScaleTypeHelper) IdentifyHpaType(scaleConfig *ScaleConfig) error {
 	return nil
 }
 
-func (s ScaleTypeHelper) checkIfHpaOp(deploy *v1.Deployment, scaleConfig *ScaleConfig) {
+func (s scaleTypeHelper) checkIfHpaOp(deploy *v1.Deployment, scaleConfig *ScaleConfig) {
 	_, maxOk := deploy.Annotations["hpa.autoscaling.banzaicloud.io/maxReplicas"]
 	_, minOk := deploy.Annotations["hpa.autoscaling.banzaicloud.io/minReplicas"]
 

@@ -2,25 +2,22 @@ package scales
 
 import (
 	"github.com/sirupsen/logrus"
-	"k8s.io/client-go/kubernetes"
 )
 
 // Implements Scaler Interface
-type VanillaHpa struct {
-	clientset kubernetes.Interface
+type vanillaHpa struct {
 	logger    *logrus.Logger
 	k8sHelper k8sHelperInterface
 }
 
-func NewVanillaHpa(clientset kubernetes.Interface, logger *logrus.Logger) *VanillaHpa {
-	return &VanillaHpa{
-		clientset: clientset,
+func newVanillaHpa(k8sHelper *k8sHelper, logger *logrus.Logger) *vanillaHpa {
+	return &vanillaHpa{
 		logger:    logger,
-		k8sHelper: newk8sHelper(clientset),
+		k8sHelper: k8sHelper,
 	}
 }
 
-func (hpa *VanillaHpa) Scale(config ScaleConfig) error {
+func (hpa *vanillaHpa) Scale(config ScaleConfig) error {
 	helper := hpa.k8sHelper
 	hpaConfig, err := helper.getHpaWithTimeout(config.Name, 500)
 

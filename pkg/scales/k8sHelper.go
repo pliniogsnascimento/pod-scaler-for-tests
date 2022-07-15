@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 type k8sHelperInterface interface {
@@ -23,14 +24,23 @@ type k8sHelper struct {
 	ctx       context.Context
 }
 
-func newk8sHelper(clientset kubernetes.Interface) *k8sHelper {
+func newK8sHelper() *k8sHelper {
+	config, err := rest.InClusterConfig()
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic("Not able to connect with kubernetes cluster")
+	}
+
+	client := kubernetes.Interface(clientset)
+
 	return &k8sHelper{
-		clientset: clientset,
+		clientset: client,
 		ctx:       context.Background(),
 	}
 }
 
-func (k k8sHelper) getDeploymentWithTimeout(deployName string, timeout time.Duration) (*v1.Deployment, error) {
+func (k *k8sHelper) getDeploymentWithTimeout(deployName string, timeout time.Duration) (*v1.Deployment, error) {
 	ctx, cancel := context.WithTimeout(k.ctx, timeout*time.Millisecond)
 	defer cancel()
 	deploy, err := k.clientset.AppsV1().Deployments(deployName).Get(ctx, deployName, metav1.GetOptions{})
@@ -42,7 +52,7 @@ func (k k8sHelper) getDeploymentWithTimeout(deployName string, timeout time.Dura
 	return deploy, nil
 }
 
-func (k k8sHelper) getHpaWithTimeout(name string, timeout time.Duration) (*autoscalingv1.HorizontalPodAutoscaler, error) {
+func (k *k8sHelper) getHpaWithTimeout(name string, timeout time.Duration) (*autoscalingv1.HorizontalPodAutoscaler, error) {
 	ctx, cancel := context.WithTimeout(k.ctx, timeout*time.Millisecond)
 	defer cancel()
 	hpa, err := k.clientset.AutoscalingV1().HorizontalPodAutoscalers(name).Get(ctx, name, metav1.GetOptions{})
@@ -53,13 +63,13 @@ func (k k8sHelper) getHpaWithTimeout(name string, timeout time.Duration) (*autos
 	return hpa, nil
 }
 
-func (k k8sHelper) executeUpdateWithTimeout(f func(client kubernetes.Interface, ctx context.Context) error, timeout time.Duration) error {
+func (k *k8sHelper) executeUpdateWithTimeout(f func(client kubernetes.Interface, ctx context.Context) error, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(k.ctx, timeout*time.Millisecond)
 	defer cancel()
 	return f(k.clientset, ctx)
 }
 
-func (k k8sHelper) updateHpaWithTimeout(name string, hpaConfig *autoscalingv1.HorizontalPodAutoscaler, timeout time.Duration) error {
+func (k *k8sHelper) updateHpaWithTimeout(name string, hpaConfig *autoscalingv1.HorizontalPodAutoscaler, timeout time.Duration) error {
 	return k.executeUpdateWithTimeout(func(client kubernetes.Interface, ctx context.Context) error {
 		_, err := client.AutoscalingV1().HorizontalPodAutoscalers(name).Update(ctx, hpaConfig, metav1.UpdateOptions{})
 		if k.accessOrNotFoundError(err) {
@@ -69,7 +79,7 @@ func (k k8sHelper) updateHpaWithTimeout(name string, hpaConfig *autoscalingv1.Ho
 	}, timeout)
 }
 
-func (k k8sHelper) updateDeployWithTimeout(name string, deployConfig *v1.Deployment, timeout time.Duration) error {
+func (k *k8sHelper) updateDeployWithTimeout(name string, deployConfig *v1.Deployment, timeout time.Duration) error {
 	return k.executeUpdateWithTimeout(func(client kubernetes.Interface, ctx context.Context) error {
 		_, err := client.AppsV1().Deployments(name).Update(ctx, deployConfig, metav1.UpdateOptions{})
 		if k.accessOrNotFoundError(err) {
@@ -79,10 +89,10 @@ func (k k8sHelper) updateDeployWithTimeout(name string, deployConfig *v1.Deploym
 	}, timeout)
 }
 
-func (k k8sHelper) accessError(err error) bool {
+func (k *k8sHelper) accessError(err error) bool {
 	return errors.IsForbidden(err) || errors.IsUnauthorized(err)
 }
 
-func (k k8sHelper) accessOrNotFoundError(err error) bool {
+func (k *k8sHelper) accessOrNotFoundError(err error) bool {
 	return k.accessError(err) || errors.IsNotFound(err)
 }
