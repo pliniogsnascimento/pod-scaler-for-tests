@@ -84,5 +84,5 @@ func (k k8sHelper) accessError(err error) bool {
 }
 
 func (k k8sHelper) accessOrNotFoundError(err error) bool {
-	return k.accessError(err) || errors.IsForbidden(err) || errors.IsUnauthorized(err)
+	return k.accessError(err) || errors.IsNotFound(err)
 }

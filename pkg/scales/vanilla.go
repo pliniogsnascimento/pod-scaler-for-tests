@@ -27,8 +27,9 @@ func NewVanillaHpa(clientset kubernetes.Interface, scaleConfigs ScaleConfigs, lo
 }
 
 func (hpa *VanillaHpa) Scale() error {
+	helper := hpa.k8sHelper
 	for _, config := range hpa.scaleConfigs {
-		hpaConfig, err := hpa.k8sHelper.getHpaWithTimeout(config.Name, 500)
+		hpaConfig, err := helper.getHpaWithTimeout(config.Name, 500)
 
 		if err != nil {
 			return err
@@ -38,7 +39,7 @@ func (hpa *VanillaHpa) Scale() error {
 		hpaConfig.Spec.MinReplicas = &minReplicas
 		hpaConfig.Spec.MaxReplicas = int32(config.Max)
 
-		return hpa.k8sHelper.updateHpaWithTimeout(config.Name, hpaConfig, 500)
+		return helper.updateHpaWithTimeout(config.Name, hpaConfig, 500)
 	}
 	return nil
 }

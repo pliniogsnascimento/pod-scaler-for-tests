@@ -196,6 +196,32 @@ func TestUpdateMultipleHpaWithConcurrencySuccess(t *testing.T) {
 func TestVanillaScaleSuccess(t *testing.T) {
 	scaleConfigs := ScaleConfigs{
 		deployMocks["HpaOpDeploy0"].Name: {
+			Name: "HpaOpDeploy0",
+			Min:  30,
+			Max:  50,
+		},
+		deployMocks["NormalDeploy"].Name: {
+			Name: "NormalDeploy",
+			Min:  30,
+			Max:  50,
+		},
+	}
+	sleep := time.Duration(time.Second * 1)
+
+	scaler := NewVanillaHpa(client, scaleConfigs, &fakeLogger, &sleep)
+	err := scaler.Scale()
+
+	if err != nil {
+		t.Errorf(err.Error())
+		t.FailNow()
+	}
+
+	checkIfUpdated(scaleConfigs, client, t)
+}
+
+func TestVanillaScaleError(t *testing.T) {
+	scaleConfigs := ScaleConfigs{
+		deployMocks["HpaOpDeploy0"].Name: {
 			Min: 30,
 			Max: 50,
 		},
@@ -209,11 +235,11 @@ func TestVanillaScaleSuccess(t *testing.T) {
 	scaler := NewVanillaHpa(client, scaleConfigs, &fakeLogger, &sleep)
 	err := scaler.Scale()
 
-	if err != nil {
-		t.Errorf(err.Error())
+	if err == nil {
+		t.FailNow()
 	}
 
-	checkIfUpdated(scaleConfigs, client, t)
+	t.Log(err.Error())
 }
 
 func checkIfUpdated(scaleConfigs ScaleConfigs, client kubernetes.Interface, t *testing.T) {
