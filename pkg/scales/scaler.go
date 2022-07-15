@@ -2,18 +2,15 @@ package scales
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 type Scaler interface {
-	Scale() error
+	Scale(config ScaleConfig) error
 }
 
 type ScaleConfigs map[string]ScaleConfig
@@ -26,7 +23,6 @@ type ScaleConfig struct {
 }
 
 type ScaleTypeHelper struct {
-	ScaleConfigs
 	clientset kubernetes.Interface
 	logger    *logrus.Logger
 	ctx       context.Context
@@ -36,21 +32,23 @@ type ScaleTypeHelper struct {
 
 func NewScaleChecker(scaleConfigs *ScaleConfigs, clientset kubernetes.Interface, logger *logrus.Logger, timeout time.Duration) *ScaleTypeHelper {
 	return &ScaleTypeHelper{
-		ScaleConfigs: *scaleConfigs,
-		clientset:    clientset,
-		logger:       logger,
-		ctx:          context.Background(),
-		timeout:      timeout * time.Millisecond,
-		helper:       newk8sHelper(clientset)
+		clientset: clientset,
+		logger:    logger,
+		ctx:       context.Background(),
+		timeout:   timeout * time.Millisecond,
+		k8sHelper: newk8sHelper(clientset),
 	}
 }
 
-func (s ScaleTypeHelper) ModifyHpaOpCheck() error {
+func (s ScaleTypeHelper) ModifyHpaOpCheck(scaleConfig ScaleConfig) error {
 	helper := s.k8sHelper
-	for _, scaleConfig := range s.ScaleConfigs {
-		deploy, err := helper.getDeploymentWithTimeout(scaleConfig.Name, 500)
-		s.checkIfHpaOp(deploy, scaleConfig)
+	deploy, err := helper.getDeploymentWithTimeout(scaleConfig.Name, 500)
+
+	if err != nil {
+		return err
 	}
+
+	s.checkIfHpaOp(deploy, scaleConfig)
 
 	return nil
 }

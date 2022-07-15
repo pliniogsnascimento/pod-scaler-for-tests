@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// TODO: Refactor to implement new contract
 // Implements Scaler Interface
 type HpaOperator struct {
 	clientset    kubernetes.Interface
@@ -20,16 +21,15 @@ type HpaOperator struct {
 	sleep        *time.Duration
 }
 
-func NewHpaOperator(clientset kubernetes.Interface, scaleConfigs ScaleConfigs, logger *logrus.Logger, sleep *time.Duration) *HpaOperator {
+func NewHpaOperator(clientset kubernetes.Interface, logger *logrus.Logger, sleep *time.Duration) *HpaOperator {
 	return &HpaOperator{
-		clientset:    clientset,
-		scaleConfigs: scaleConfigs,
-		logger:       logger,
-		sleep:        sleep,
+		clientset: clientset,
+		logger:    logger,
+		sleep:     sleep,
 	}
 }
 
-func (op HpaOperator) Scale() error {
+func (op HpaOperator) Scale(config ScaleConfig) error {
 	for _, config := range op.scaleConfigs {
 		deploy, err := op.clientset.AppsV1().Deployments(config.Name).Get(context.TODO(), config.Name, metav1.GetOptions{})
 		if errors.IsForbidden(err) || errors.IsUnauthorized(err) {

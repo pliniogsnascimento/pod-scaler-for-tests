@@ -208,12 +208,15 @@ func TestVanillaScaleSuccess(t *testing.T) {
 	}
 	sleep := time.Duration(time.Second * 1)
 
-	scaler := NewVanillaHpa(client, scaleConfigs, &fakeLogger, &sleep)
-	err := scaler.Scale()
+	scaler := NewVanillaHpa(client, &fakeLogger, &sleep)
 
-	if err != nil {
-		t.Errorf(err.Error())
-		t.FailNow()
+	for _, config := range scaleConfigs {
+		err := scaler.Scale(config)
+
+		if err != nil {
+			t.Errorf(err.Error())
+			t.FailNow()
+		}
 	}
 
 	checkIfUpdated(scaleConfigs, client, t)
@@ -232,14 +235,15 @@ func TestVanillaScaleError(t *testing.T) {
 	}
 	sleep := time.Duration(time.Second * 1)
 
-	scaler := NewVanillaHpa(client, scaleConfigs, &fakeLogger, &sleep)
-	err := scaler.Scale()
+	scaler := NewVanillaHpa(client, &fakeLogger, &sleep)
+	for _, config := range scaleConfigs {
+		err := scaler.Scale(config)
+		if err == nil {
+			t.FailNow()
+		}
 
-	if err == nil {
-		t.FailNow()
+		t.Log(err.Error())
 	}
-
-	t.Log(err.Error())
 }
 
 func checkIfUpdated(scaleConfigs ScaleConfigs, client kubernetes.Interface, t *testing.T) {

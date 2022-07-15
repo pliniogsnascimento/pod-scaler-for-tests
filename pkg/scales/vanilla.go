@@ -9,37 +9,32 @@ import (
 
 // Implements Scaler Interface
 type VanillaHpa struct {
-	clientset    kubernetes.Interface
-	scaleConfigs ScaleConfigs
-	logger       *logrus.Logger
-	sleep        *time.Duration
-	k8sHelper    k8sHelperInterface
+	clientset kubernetes.Interface
+	logger    *logrus.Logger
+	sleep     *time.Duration
+	k8sHelper k8sHelperInterface
 }
 
-func NewVanillaHpa(clientset kubernetes.Interface, scaleConfigs ScaleConfigs, logger *logrus.Logger, sleep *time.Duration) *VanillaHpa {
+func NewVanillaHpa(clientset kubernetes.Interface, logger *logrus.Logger, sleep *time.Duration) *VanillaHpa {
 	return &VanillaHpa{
-		clientset:    clientset,
-		scaleConfigs: scaleConfigs,
-		logger:       logger,
-		sleep:        sleep,
-		k8sHelper:    newk8sHelper(clientset),
+		clientset: clientset,
+		logger:    logger,
+		sleep:     sleep,
+		k8sHelper: newk8sHelper(clientset),
 	}
 }
 
-func (hpa *VanillaHpa) Scale() error {
+func (hpa *VanillaHpa) Scale(config ScaleConfig) error {
 	helper := hpa.k8sHelper
-	for _, config := range hpa.scaleConfigs {
-		hpaConfig, err := helper.getHpaWithTimeout(config.Name, 500)
+	hpaConfig, err := helper.getHpaWithTimeout(config.Name, 500)
 
-		if err != nil {
-			return err
-		}
-
-		minReplicas := int32(config.Min)
-		hpaConfig.Spec.MinReplicas = &minReplicas
-		hpaConfig.Spec.MaxReplicas = int32(config.Max)
-
-		return helper.updateHpaWithTimeout(config.Name, hpaConfig, 500)
+	if err != nil {
+		return err
 	}
-	return nil
+
+	minReplicas := int32(config.Min)
+	hpaConfig.Spec.MinReplicas = &minReplicas
+	hpaConfig.Spec.MaxReplicas = int32(config.Max)
+
+	return helper.updateHpaWithTimeout(config.Name, hpaConfig, 500)
 }
