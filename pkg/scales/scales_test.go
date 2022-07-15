@@ -128,24 +128,6 @@ func TestUpdateHpaOperatorSuccess(t *testing.T) {
 	}
 }
 
-func TestUpdateHpaSuccess(t *testing.T) {
-	scaleConfigs := ScaleConfigs{
-		deployMocks["HpaOpDeploy0"].Name: {
-			Min: 3,
-			Max: 5,
-		},
-		deployMocks["NormalDeploy"].Name: {
-			Min: 3,
-			Max: 5,
-		},
-	}
-
-	sleep := time.Duration(0)
-	if err := UpdateHpa(client, scaleConfigs, &fakeLogger, &sleep); err != nil {
-		t.Error(err)
-	}
-}
-
 func TestUpdateMultipleHpaWithConcurrencySuccess(t *testing.T) {
 	scaleConfigs := ScaleConfigs{
 		deployMocks["HpaOpDeploy0"].Name: {
@@ -207,6 +189,29 @@ func TestUpdateMultipleHpaWithConcurrencySuccess(t *testing.T) {
 
 	sleep := time.Duration(time.Second * 1)
 	UpdateHpaWithConcurrency(client, scaleConfigs, &fakeLogger, &sleep)
+
+	checkIfUpdated(scaleConfigs, client, t)
+}
+
+func TestVanillaScaleSuccess(t *testing.T) {
+	scaleConfigs := ScaleConfigs{
+		deployMocks["HpaOpDeploy0"].Name: {
+			Min: 30,
+			Max: 50,
+		},
+		deployMocks["NormalDeploy"].Name: {
+			Min: 30,
+			Max: 50,
+		},
+	}
+	sleep := time.Duration(time.Second * 1)
+
+	scaler := NewVanillaHpa(client, scaleConfigs, &fakeLogger, &sleep)
+	err := scaler.Scale()
+
+	if err != nil {
+		t.Errorf(err.Error())
+	}
 
 	checkIfUpdated(scaleConfigs, client, t)
 }

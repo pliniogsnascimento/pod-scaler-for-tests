@@ -1,21 +1,19 @@
 package scales
 
 import (
-	"context"
-	"fmt"
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
+// Implements Scaler Interface
 type VanillaHpa struct {
 	clientset    kubernetes.Interface
 	scaleConfigs ScaleConfigs
 	logger       *logrus.Logger
 	sleep        *time.Duration
+	k8sHelper    k8sHelperInterface
 }
 
 func NewVanillaHpa(clientset kubernetes.Interface, scaleConfigs ScaleConfigs, logger *logrus.Logger, sleep *time.Duration) *VanillaHpa {
@@ -24,38 +22,23 @@ func NewVanillaHpa(clientset kubernetes.Interface, scaleConfigs ScaleConfigs, lo
 		scaleConfigs: scaleConfigs,
 		logger:       logger,
 		sleep:        sleep,
+		k8sHelper:    newk8sHelper(clientset),
 	}
 }
 
 func (hpa *VanillaHpa) Scale() error {
 	for _, config := range hpa.scaleConfigs {
-		hpaConfig, err := hpa.clientset.AutoscalingV1().HorizontalPodAutoscalers(config.Name).Get(context.TODO(), config.Name, metav1.GetOptions{})
-		if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
-			hpa.logger.Errorln(err.Error())
-			return err
-		}
+		hpaConfig, err := hpa.k8sHelper.getHpaWithTimeout(config.Name, 500)
 
-		if errors.IsNotFound(err) {
-			hpa.logger.Warnf("HPA not found in namespace %s\n", config.Name)
-			return nil
+		if err != nil {
+			return err
 		}
 
 		minReplicas := int32(config.Min)
 		hpaConfig.Spec.MinReplicas = &minReplicas
 		hpaConfig.Spec.MaxReplicas = int32(config.Max)
 
-		_, err = hpa.clientset.AutoscalingV1().HorizontalPodAutoscalers(config.Name).Update(context.TODO(), hpaConfig, metav1.UpdateOptions{})
-		if err == nil {
-			hpa.logger.Printf("Success updating HPA %s!", hpaConfig.Name)
-		}
-		if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
-			hpa.logger.Errorln(err.Error())
-			return err
-		}
+		return hpa.k8sHelper.updateHpaWithTimeout(config.Name, hpaConfig, 500)
 	}
 	return nil
-}
-
-func (hpa VanillaHpa) ScaleWithConcurrency() error {
-	return fmt.Errorf("Not implemented")
 }

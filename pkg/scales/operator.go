@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// Implements Scaler Interface
 type HpaOperator struct {
 	clientset    kubernetes.Interface
 	scaleConfigs ScaleConfigs

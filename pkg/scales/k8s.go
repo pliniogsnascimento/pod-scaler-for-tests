@@ -19,7 +19,6 @@ func GetClientset() (kubernetes.Interface, error) {
 	config, err := rest.InClusterConfig()
 
 	if err != nil {
-
 		return nil, err
 	}
 
@@ -113,6 +112,7 @@ func UpdateHpaWithConcurrency(clientset kubernetes.Interface, scaleConfigs Scale
 	}
 }
 
+// Deprecated: This method is deprecated by using no concurrent implementation.
 func UpdateHpa(clientset kubernetes.Interface, scaleConfigs ScaleConfigs, logger *logrus.Logger, sleep *time.Duration) error {
 	// Checks if it is Hpa Operator
 	for scaleName, scaleConfig := range scaleConfigs {
