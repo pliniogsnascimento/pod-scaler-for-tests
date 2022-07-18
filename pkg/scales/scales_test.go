@@ -78,6 +78,7 @@ var (
 	}
 )
 
+// TODO: Create Mocks for vanilla
 func init() {
 	deployMocks = make(map[string]v1.Deployment)
 
@@ -200,7 +201,8 @@ func TestUpdateMultipleHpaWithConcurrencySuccess(t *testing.T) {
 	}
 
 	sleep := time.Duration(time.Second * 1)
-	facade.UpdateHpaWithConcurrency(client, scaleConfigs, &fakeLogger, &sleep)
+	// facade.UpdateHpaWithConcurrency(client, scaleConfigs, &fakeLogger, &sleep)
+	facade.UpdateWithConcurrency(scaleConfigs, &sleep)
 
 	checkIfUpdated(scaleConfigs, client, t)
 }

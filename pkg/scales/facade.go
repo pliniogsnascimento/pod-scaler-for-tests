@@ -70,7 +70,7 @@ func (s *ScalesFacade) GetHpaInfo(clientset kubernetes.Interface, scaleConfigs S
 	return currentConfig, nil
 }
 
-func (s *ScalesFacade) UpdateHpaWithConcurrency(clientset kubernetes.Interface, scaleConfigs ScaleConfigs, logger *logrus.Logger, sleep *time.Duration) {
+func (s *ScalesFacade) UpdateWithConcurrency(scaleConfigs ScaleConfigs, sleep *time.Duration) {
 	scaleCh := make(chan ScaleConfig)
 	chQuit := make(chan error)
 
@@ -82,12 +82,12 @@ func (s *ScalesFacade) UpdateHpaWithConcurrency(clientset kubernetes.Interface, 
 			err := scaleHelper.IdentifyHpaType(&scaleConfig)
 
 			if err != nil {
-				logger.Warnf(err.Error())
+				s.logger.Warnf(err.Error())
 				continue
 			}
 
 			scaleCh <- scaleConfig
-			logger.Debugf("%s config sent.\n", scaleConfig.Name)
+			s.logger.Debugf("%s config sent.\n", scaleConfig.Name)
 		}
 		chQuit <- nil
 	}()
@@ -95,23 +95,27 @@ func (s *ScalesFacade) UpdateHpaWithConcurrency(clientset kubernetes.Interface, 
 	for {
 		select {
 		case configs := <-scaleCh:
-			logger.Debugf("%s config received.\n", configs.Name)
-			scaler, err := s.scalerFactory.getScaler(configs.Type, s.k8sHelper, logger)
+			s.logger.Debugf("%s config received.\n", configs.Name)
+			scaler, err := s.scalerFactory.getScaler(configs.Type, s.k8sHelper, s.logger)
 
 			if err != nil {
-				logger.Errorln(err)
+				s.logger.Errorln(err)
 				return
 			}
 
-			scaler.Scale(configs)
+			err = scaler.Scale(configs)
+			if err != nil {
+				s.logger.Errorln(err)
+			}
+
 			time.Sleep(*sleep)
 		case err := <-chQuit:
 			close(scaleCh)
 			if err != nil {
-				logger.Errorln(err)
+				s.logger.Errorln(err)
 				return
 			}
-			logger.Debugln("Channels were closed!")
+			s.logger.Debugln("Channels were closed!")
 			return
 		default:
 			continue
