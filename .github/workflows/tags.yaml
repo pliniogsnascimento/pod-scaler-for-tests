@@ -1,0 +1,39 @@
+# This workflow uses actions that are not certified by GitHub.
+# São fornecidas por terceiros e regidas por
+# termos de serviço, política de privacidade e suporte separados
+# documentação.
+
+name: Publish Docker image
+
+on:
+  push:
+    tags:
+      - "**"
+
+jobs:
+  push_to_registry:
+    name: Push Docker image to Docker Hub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action
+        with:
+          images: pliniogsnascimento/pod-autoscaler-for-tests
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        with:
+          context: .
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
