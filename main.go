@@ -15,6 +15,8 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
+
 	server "github.com/pliniogsnascimento/pod-scaler-for-tests/pkg/server/http"
 	"github.com/sirupsen/logrus"
 )
@@ -30,5 +32,6 @@ func init() {
 }
 
 func main() {
-	server.StartServer("8090", logger)
+	// server.StartServer("8090", logger)
+	fmt.Println(fmt.Errorf("Not implemented").Error())
 }
