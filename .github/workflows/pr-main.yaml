@@ -31,6 +31,7 @@ jobs:
     - run: go test ./... -v
   build-image:
     runs-on: ubuntu-latest
+    needs: [build, test]
     steps:
     - uses: actions/checkout@v1
 
