@@ -29,4 +29,13 @@ jobs:
         go-version: ${{ matrix.go-version }}
     - uses: actions/checkout@v3
     - run: go test ./... -v
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Build docker image
+      run: |
+        docker build . --file Dockerfile --tag pliniogsnascimento/pod-autoscaler-for-tests:latest
+
 
