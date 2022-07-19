@@ -12,6 +12,7 @@ import (
 
 var logger *logrus.Logger
 
+// Start http server with routes
 func StartServer(port string, defaultLogger *logrus.Logger) {
 	logger = defaultLogger
 
