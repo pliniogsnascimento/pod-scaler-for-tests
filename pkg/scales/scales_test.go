@@ -78,6 +78,7 @@ var (
 	}
 )
 
+// TODO: Create Mocks for vanilla
 func init() {
 	deployMocks = make(map[string]v1.Deployment)
 
@@ -116,37 +117,32 @@ func init() {
 	fakeLogger.Level = logrus.DebugLevel
 }
 
+// TODO: Refactor
 func TestUpdateHpaOperatorSuccess(t *testing.T) {
-	scaleConfigs := &ScaleConfig{
-		Min:         3,
-		Max:         5,
-		HpaOperator: true,
-	}
+	// scaleConfigs := &ScaleConfig{
+	// 	Min:         3,
+	// 	Max:         5,
+	// 	HpaOperator: true,
+	// }
 
-	if err := updateHpaOp(client, deployMocks["HpaOpDeploy0"].Name, scaleConfigs, &fakeLogger); err != nil {
-		t.Errorf("Error: %s", err)
-	}
-}
+	// if err := updateHpaOp(client, deployMocks["HpaOpDeploy0"].Name, scaleConfigs, &fakeLogger); err != nil {
+	// 	t.Errorf("Error: %s", err)
+	// }
 
-func TestUpdateHpaSuccess(t *testing.T) {
-	scaleConfigs := ScaleConfigs{
-		deployMocks["HpaOpDeploy0"].Name: {
-			Min: 3,
-			Max: 5,
-		},
-		deployMocks["NormalDeploy"].Name: {
-			Min: 3,
-			Max: 5,
-		},
-	}
-
-	sleep := time.Duration(0)
-	if err := UpdateHpa(client, scaleConfigs, &fakeLogger, &sleep); err != nil {
-		t.Error(err)
-	}
 }
 
 func TestUpdateMultipleHpaWithConcurrencySuccess(t *testing.T) {
+	k8sHelper := &k8sHelper{
+		clientset: client,
+		ctx:       context.TODO(),
+	}
+
+	facade := &ScalesFacade{
+		k8sHelper:     k8sHelper,
+		scaleHelper:   newScaleTypeHelper(k8sHelper, &fakeLogger, 500),
+		scalerFactory: &scalerFactory{},
+		logger:        &fakeLogger,
+	}
 	scaleConfigs := ScaleConfigs{
 		deployMocks["HpaOpDeploy0"].Name: {
 			Min:         3,
@@ -206,7 +202,8 @@ func TestUpdateMultipleHpaWithConcurrencySuccess(t *testing.T) {
 	}
 
 	sleep := time.Duration(time.Second * 1)
-	UpdateHpaWithConcurrency(client, scaleConfigs, &fakeLogger, &sleep)
+	// facade.UpdateHpaWithConcurrency(client, scaleConfigs, &fakeLogger, &sleep)
+	facade.UpdateWithConcurrency(scaleConfigs, &sleep)
 
 	checkIfUpdated(scaleConfigs, client, t)
 }
