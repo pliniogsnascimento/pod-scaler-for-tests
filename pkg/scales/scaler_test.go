@@ -79,3 +79,32 @@ func TestIdentifyHpaType_Fail(t *testing.T) {
 
 	assert.NotNil(t, err)
 }
+
+func TestScaleHpaOperator_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	k8sHelperMock := NewMockk8sHelperInterface(ctrl)
+
+	fakeDeploy := fakeDeploymentModel
+	fakeDeploy.Annotations = map[string]string{}
+
+	k8sHelperMock.
+		EXPECT().
+		getDeploymentWithTimeout(gomock.Any(), gomock.Any()).
+		Return(&fakeDeploy, nil).
+		AnyTimes()
+
+	k8sHelperMock.
+		EXPECT().
+		updateDeployWithTimeout(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
+	config := ScaleConfig{
+		Min:         3,
+		Max:         5,
+		HpaOperator: true,
+	}
+
+	hpaOp := newHpaOperator(k8sHelperMock, &fakeLogger)
+	hpaOp.Scale(config)
+}

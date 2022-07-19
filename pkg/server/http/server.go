@@ -37,13 +37,13 @@ func postScaleConfigs(c *gin.Context) {
 		return
 	}
 
-	clientset, err := facade.GetClientset()
+	// clientset, err := facade.GetClientset()
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
 
-	go facade.UpdateHpaWithConcurrency(clientset, configs, logger, &sleepDuration)
+	go facade.UpdateWithConcurrency(configs, &sleepDuration)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return

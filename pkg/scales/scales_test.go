@@ -128,6 +128,7 @@ func TestUpdateHpaOperatorSuccess(t *testing.T) {
 	// if err := updateHpaOp(client, deployMocks["HpaOpDeploy0"].Name, scaleConfigs, &fakeLogger); err != nil {
 	// 	t.Errorf("Error: %s", err)
 	// }
+
 }
 
 func TestUpdateMultipleHpaWithConcurrencySuccess(t *testing.T) {

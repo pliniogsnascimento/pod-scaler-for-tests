@@ -1,12 +1,12 @@
 package scales
 
 import (
-	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
-// TODO: Refactor to implement new contract
 // Implements Scaler Interface
 type hpaOperator struct {
 	scaleConfigs ScaleConfigs
@@ -21,30 +21,17 @@ func newHpaOperator(k8sHelper k8sHelperInterface, logger *logrus.Logger) *hpaOpe
 	}
 }
 
-func (op hpaOperator) Scale(config ScaleConfig) error {
-	// for _, config := range op.scaleConfigs {
-	// 	deploy, err := op.clientset.AppsV1().Deployments(config.Name).Get(context.TODO(), config.Name, metav1.GetOptions{})
-	// 	if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
-	// 		op.logger.Errorln(err.Error())
-	// 		return err
-	// 	}
+func (op *hpaOperator) Scale(config ScaleConfig) error {
+	deploy, err := op.k8sHelper.getDeploymentWithTimeout(config.Name, 500*time.Millisecond)
 
-	// 	if errors.IsNotFound(err) {
-	// 		op.logger.Warnf("Deployment not found in namespace %s\n", config.Name)
-	// 		return nil
-	// 	}
+	if err != nil {
+		return err
+	}
 
-	// 	deploy.Annotations["hpa.autoscaling.banzaicloud.io/maxReplicas"] = strconv.Itoa(config.Max)
-	// 	deploy.Annotations["hpa.autoscaling.banzaicloud.io/minReplicas"] = strconv.Itoa(config.Min)
+	deploy.Annotations["hpa.autoscaling.banzaicloud.io/maxReplicas"] = strconv.Itoa(config.Max)
+	deploy.Annotations["hpa.autoscaling.banzaicloud.io/minReplicas"] = strconv.Itoa(config.Min)
 
-	// 	deploy, err = op.clientset.AppsV1().Deployments(config.Name).Update(context.TODO(), deploy, metav1.UpdateOptions{})
-	// 	if err == nil {
-	// 		op.logger.Printf("Success updating Deployment %s!", deploy.Name)
-	// 	}
-	// 	if errors.IsForbidden(err) || errors.IsUnauthorized(err) {
-	// 		op.logger.Errorln(err.Error())
-	// 		return err
-	// 	}
-	// }
-	return fmt.Errorf("Not Implemented.")
+	err = op.k8sHelper.updateDeployWithTimeout(deploy.Name, deploy, 500*time.Millisecond)
+
+	return err
 }

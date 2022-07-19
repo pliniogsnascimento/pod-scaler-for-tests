@@ -72,27 +72,27 @@ func (s *ScalesFacade) GetHpaInfo(clientset kubernetes.Interface, scaleConfigs S
 
 func (s *ScalesFacade) UpdateWithConcurrency(scaleConfigs ScaleConfigs, sleep *time.Duration) {
 	scaleCh := make(chan ScaleConfig)
-	chQuit := make(chan error)
+	errorCh := make(chan error)
 
 	// Checks if it is Hpa Operator
-	go func() {
-		scaleHelper := s.scaleHelper
-		for scaleName, scaleConfig := range scaleConfigs {
-			scaleConfig.Name = scaleName
-			err := scaleHelper.IdentifyHpaType(&scaleConfig)
+	scaleHelper := s.scaleHelper
+	for scaleName, scaleConfig := range scaleConfigs {
+		scaleConfig.Name = scaleName
+		go func(config ScaleConfig) {
+			err := scaleHelper.IdentifyHpaType(&config)
 
 			if err != nil {
 				s.logger.Warnf(err.Error())
-				continue
+				errorCh <- err
+				return
 			}
 
-			scaleCh <- scaleConfig
-			s.logger.Debugf("%s config sent.\n", scaleConfig.Name)
-		}
-		chQuit <- nil
-	}()
+			scaleCh <- config
+			s.logger.Debugf("%s config sent.\n", config.Name)
+		}(scaleConfig)
+	}
 
-	for {
+	for i := 0; i < len(scaleConfigs); i++ {
 		select {
 		case configs := <-scaleCh:
 			s.logger.Debugf("%s config received.\n", configs.Name)
@@ -109,16 +109,8 @@ func (s *ScalesFacade) UpdateWithConcurrency(scaleConfigs ScaleConfigs, sleep *t
 			}
 
 			time.Sleep(*sleep)
-		case err := <-chQuit:
-			close(scaleCh)
-			if err != nil {
-				s.logger.Errorln(err)
-				return
-			}
-			s.logger.Debugln("Channels were closed!")
-			return
-		default:
-			continue
+		case err := <-errorCh:
+			s.logger.Errorln(err.Error())
 		}
 	}
 }
