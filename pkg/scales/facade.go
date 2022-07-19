@@ -70,6 +70,7 @@ func (s *ScalesFacade) GetHpaInfo(clientset kubernetes.Interface, scaleConfigs S
 	return currentConfig, nil
 }
 
+// Update HPA list
 func (s *ScalesFacade) UpdateWithConcurrency(scaleConfigs ScaleConfigs, sleep *time.Duration) {
 	scaleCh := make(chan ScaleConfig)
 	errorCh := make(chan error)
